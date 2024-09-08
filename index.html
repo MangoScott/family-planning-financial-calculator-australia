@@ -163,7 +163,7 @@
         <div class="section">
             <h3>Household Income</h3>
             <div class="explanation">
-                <p><span class="material-icons">monetization_on</span> Enter the annual salary for each spouse/partner.</p>
+                <p><span class="material-icons">monetization_on</span> Enter the annual salary for each spouse/partner. The 12% Superannuation Guarantee is automatically included in calculations.</p>
             </div>
             <div class="form-group">
                 <label for="salary1">Spouse / Partner #1 Annual Salary (AUD)</label>
@@ -211,6 +211,7 @@
             <button onclick="showPage('expensesPage')"><span class="material-icons">arrow_forward</span> Next: Expenses</button>
         </div>
     </div>
+
     <div id="expensesPage" class="page">
         <h2>Expenses</h2>
         <div id="childcareSection" class="section">
@@ -303,7 +304,7 @@
         <div class="section">
             <h3>Future Growth and Savings</h3>
             <div class="explanation">
-                <p><span class="material-icons">trending_up</span> Estimate how you think your salaries and expenses might change over time.</p>
+                <p><span class="material-icons">trending_up</span> Estimate how you think your salaries and expenses might change over time. The 12% Superannuation Guarantee is automatically included in calculations.</p>
             </div>
             <div class="form-group">
                 <label for="salaryGrowth">Estimated Annual Salary Growth (%)</label>
@@ -318,11 +319,11 @@
                 <input type="number" id="livingExpensesGrowth" value="3" step="0.01" required>
             </div>
             <div class="form-group">
-                <label for="superContribution1">Spouse / Partner #1 Additional Super Contribution (%)</label>
+                <label for="superContribution1">Spouse / Partner #1 Additional Voluntary Super Contribution (%)</label>
                 <input type="number" id="superContribution1" value="0" step="0.01" required>
             </div>
             <div class="form-group">
-                <label for="superContribution2">Spouse / Partner #2 Additional Super Contribution (%)</label>
+                <label for="superContribution2">Spouse / Partner #2 Additional Voluntary Super Contribution (%)</label>
                 <input type="number" id="superContribution2" value="0" step="0.01" required>
             </div>
         </div>
@@ -416,6 +417,7 @@
             const baselineChildCareCosts = [16000, 16480, 16974, 17484, 18008, 18548, 19105, 19678, 20268, 20876, 21502, 22147, 22812, 23496, 24201];
             const backToWorkYear = Math.max(workforceLeaveDuration1, workforceLeaveDuration2) + 1;
             const conservativeReturnRate = 0.07; // 7% annual return on super
+            const superGuarantee = 0.12; // 12% superannuation guarantee
 
             let results = '';
             let currentScenarioTotal = 0;
@@ -424,6 +426,17 @@
             let continuousEmploymentSuperBalance = 0;
             let dinkScenarioTotal = 0;
             let dinkScenarioSuperBalance = 0;
+
+            for (let year = 1; year <= 15; year++) {
+                // Calculation logic will be continued in the next section
+            }
+        }
+    </script>
+    <script>
+        // ... (previous code remains the same)
+
+        function calculateResults() {
+            // ... (previous part of the function remains the same)
 
             for (let year = 1; year <= 15; year++) {
                 let projectedSalary1 = salary1 * Math.pow(1 + salaryGrowth, year - 1);
@@ -447,32 +460,45 @@
 
                 const projectedBasicLivingExpenses = basicLivingExpenses * Math.pow(1 + livingExpensesGrowth, year - 1);
 
-                const superContribution = (projectedSalary1 * (0.12 + superContribution1)) + (projectedSalary2 * (0.12 + superContribution2));
+                // Calculate superannuation contributions
+                const superContributionEmployer1 = projectedSalary1 * superGuarantee;
+                const superContributionEmployer2 = projectedSalary2 * superGuarantee;
+                const superContributionVoluntary1 = projectedSalary1 * superContribution1;
+                const superContributionVoluntary2 = projectedSalary2 * superContribution2;
+                const totalSuperContribution = superContributionEmployer1 + superContributionEmployer2 + superContributionVoluntary1 + superContributionVoluntary2;
 
-                const taxableIncome = grossIncome;
-                const incomeTax = calculateTax(projectedSalary1) + calculateTax(projectedSalary2);
-                const medicareLevyTax = taxableIncome * medicareLevyRate;
-                const totalTax = incomeTax + medicareLevyTax;
+                // Calculate taxes
+                const taxableIncome1 = projectedSalary1 - superContributionVoluntary1;
+                const taxableIncome2 = projectedSalary2 - superContributionVoluntary2;
+                const incomeTax1 = calculateTax(taxableIncome1);
+                const incomeTax2 = calculateTax(taxableIncome2);
+                const medicareLevyTax1 = taxableIncome1 * medicareLevyRate;
+                const medicareLevyTax2 = taxableIncome2 * medicareLevyRate;
+                const totalTax = incomeTax1 + incomeTax2 + medicareLevyTax1 + medicareLevyTax2;
 
-                const netIncome = grossIncome - totalTax - projectedChildCareCost - projectedBasicLivingExpenses - (superContribution1 * projectedSalary1) - (superContribution2 * projectedSalary2);
+                const netIncome = grossIncome - totalTax - projectedChildCareCost - projectedBasicLivingExpenses - superContributionVoluntary1 - superContributionVoluntary2;
 
                 currentScenarioTotal += netIncome;
-                currentScenarioSuperBalance = (currentScenarioSuperBalance + superContribution) * (1 + conservativeReturnRate);
+                currentScenarioSuperBalance = (currentScenarioSuperBalance + totalSuperContribution) * (1 + conservativeReturnRate);
 
                 // Calculate continuous employment scenario
                 const continuousEmploymentSalary1 = salary1 * Math.pow(1 + salaryGrowth, year - 1);
                 const continuousEmploymentSalary2 = salary2 * Math.pow(1 + salaryGrowth, year - 1);
                 const continuousEmploymentGrossIncome = continuousEmploymentSalary1 + continuousEmploymentSalary2;
-                const continuousEmploymentIncomeTax = calculateTax(continuousEmploymentSalary1) + calculateTax(continuousEmploymentSalary2);
-                const continuousEmploymentMedicareLevyTax = continuousEmploymentGrossIncome * medicareLevyRate;
-                const continuousEmploymentTotalTax = continuousEmploymentIncomeTax + continuousEmploymentMedicareLevyTax;
-                const continuousEmploymentSuperContribution = (continuousEmploymentSalary1 * (0.12 + superContribution1)) + (continuousEmploymentSalary2 * (0.12 + superContribution2));
-                const continuousEmploymentNetIncome = continuousEmploymentGrossIncome - continuousEmploymentTotalTax - projectedChildCareCost - projectedBasicLivingExpenses - (superContribution1 * continuousEmploymentSalary1) - (superContribution2 * continuousEmploymentSalary2);
+                const continuousEmploymentSuperContribution = (continuousEmploymentSalary1 + continuousEmploymentSalary2) * (superGuarantee + superContribution1 + superContribution2);
+                const continuousEmploymentTaxableIncome1 = continuousEmploymentSalary1 - (continuousEmploymentSalary1 * superContribution1);
+                const continuousEmploymentTaxableIncome2 = continuousEmploymentSalary2 - (continuousEmploymentSalary2 * superContribution2);
+                const continuousEmploymentIncomeTax1 = calculateTax(continuousEmploymentTaxableIncome1);
+                const continuousEmploymentIncomeTax2 = calculateTax(continuousEmploymentTaxableIncome2);
+                const continuousEmploymentMedicareLevyTax1 = continuousEmploymentTaxableIncome1 * medicareLevyRate;
+                const continuousEmploymentMedicareLevyTax2 = continuousEmploymentTaxableIncome2 * medicareLevyRate;
+                const continuousEmploymentTotalTax = continuousEmploymentIncomeTax1 + continuousEmploymentIncomeTax2 + continuousEmploymentMedicareLevyTax1 + continuousEmploymentMedicareLevyTax2;
+                const continuousEmploymentNetIncome = continuousEmploymentGrossIncome - continuousEmploymentTotalTax - projectedChildCareCost - projectedBasicLivingExpenses - (continuousEmploymentSalary1 * superContribution1) - (continuousEmploymentSalary2 * superContribution2);
                 continuousEmploymentTotal += continuousEmploymentNetIncome;
                 continuousEmploymentSuperBalance = (continuousEmploymentSuperBalance + continuousEmploymentSuperContribution) * (1 + conservativeReturnRate);
 
                 // Calculate DINK scenario
-                const dinkNetIncome = continuousEmploymentGrossIncome - continuousEmploymentTotalTax - projectedBasicLivingExpenses - (superContribution1 * continuousEmploymentSalary1) - (superContribution2 * continuousEmploymentSalary2);
+                const dinkNetIncome = continuousEmploymentGrossIncome - continuousEmploymentTotalTax - projectedBasicLivingExpenses - (continuousEmploymentSalary1 * superContribution1) - (continuousEmploymentSalary2 * superContribution2);
                 dinkScenarioTotal += dinkNetIncome;
                 dinkScenarioSuperBalance = (dinkScenarioSuperBalance + continuousEmploymentSuperContribution) * (1 + conservativeReturnRate);
 
@@ -482,7 +508,7 @@
                     <td>$${Math.round(totalTax).toLocaleString()}</td>
                     <td>$${Math.round(projectedChildCareCost).toLocaleString()}</td>
                     <td>$${Math.round(projectedBasicLivingExpenses).toLocaleString()}</td>
-                    <td>$${Math.round(superContribution).toLocaleString()}</td>
+                    <td>$${Math.round(totalSuperContribution).toLocaleString()}</td>
                     <td>$${Math.round(netIncome).toLocaleString()}</td>
                 </tr>`;
             }
